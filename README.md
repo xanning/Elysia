@@ -5,7 +5,7 @@
 
 ## An HLS media downloader and converter with quality, language (and more) selection
 
-- Go to Releases page, and download the Windows executable. For macOS / Linux, you'll need to run the Python file yourself, with ffmpeg & ytdlp binaries present (important)
+- Go to Releases page, and download the Windows executable. For macOS look below.
 
 - The URL you need to input is the HLS playlist link.
 
@@ -15,12 +15,6 @@
 
 ## MACOS
 
-- Download the source code, extract it.
+- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/25634051319/artifacts/6905262861
 
-- Have python in your machine.
-
-- Download the ytdlp & ffmpeg binaries, put them in the same folder
-
-[ytdlp-macos](https://github.com/yt-dlp/yt-dlp/releases/download/2026.03.17/yt-dlp_macos)
-
-[ffmpeg](https://evermeet.cx/ffmpeg/)
+- Right click => Open => Open anyway
