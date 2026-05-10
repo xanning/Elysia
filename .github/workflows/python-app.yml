@@ -16,16 +16,26 @@ jobs:
 
       - name: Install dependencies
         run: pip install pyinstaller
+
       - name: Download yt-dlp + ffmpeg
         run: |
+          set -e
+
           curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
           chmod +x yt-dlp
 
-          curl -L https://evermeet.cx/ffmpeg/getrelease/zip -o ffmpeg.zip
-          unzip ffmpeg.zip
+          curl -L https://evermeet.cx/ffmpeg/ffmpeg-124391-g1c522ffdef5.7z -o ffmpeg.7z
+          curl -L https://evermeet.cx/ffmpeg/ffprobe-124391-g1c522ffdef5.7z -o ffprobe.7z
 
-          chmod +x ffmpeg
-          chmod +x ffprobe
+          mkdir ff
+
+          bsdtar -xf ffmpeg.7z -C ff
+          bsdtar -xf ffprobe.7z -C ff
+
+          find ff -name ffmpeg -exec cp {} ./ffmpeg \;
+          find ff -name ffprobe -exec cp {} ./ffprobe \;
+
+          chmod +x yt-dlp ffmpeg ffprobe
 
       - name: Build
         run: |
