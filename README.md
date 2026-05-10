@@ -4,3 +4,5 @@
 
 
 ## An HLS media downloader and converter with quality, language (and more) selection
+
+- Go to Releases page, and download the Windows executable. For macOS / Linux, you'll need to run the Python file yourself, with ffmpeg & ytdlp binaries present (important)
