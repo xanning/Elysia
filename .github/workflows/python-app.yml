@@ -1,0 +1,38 @@
+name: build-macos
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyinstaller
+      - name: Download yt-dlp + ffmpeg
+        run: |
+          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
+          curl -L https://evermeet.cx/ffmpeg/getrelease/zip -o ffmpeg.zip
+          unzip ffmpeg.zip
+          chmod +x yt-dlp ffmpeg ffprobe
+
+      - name: Build
+        run: |
+          pyinstaller --onefile --console \
+          --add-binary "yt-dlp:." \
+          --add-binary "ffmpeg:." \
+          --add-binary "ffprobe:." \
+          main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Elysia-macos
+          path: dist/
