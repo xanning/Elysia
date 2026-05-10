@@ -37,16 +37,22 @@ jobs:
 
           chmod +x yt-dlp ffmpeg ffprobe
 
-      - name: Build
+      - name: Build .app
         run: |
-          pyinstaller --onefile --console \
+          pyinstaller --onefile --windowed --name Elysia \
           --add-binary "yt-dlp:." \
           --add-binary "ffmpeg:." \
           --add-binary "ffprobe:." \
           main.py
 
+      - name: Create DMG
+        run: |
+          mkdir -p dmg
+          cp -R dist/Elysia.app dmg/
+          hdiutil create -volname Elysia -srcfolder dmg -ov -format UDZO Elysia.dmg
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Elysia-macos
-          path: dist/
+          path: Elysia.dmg
