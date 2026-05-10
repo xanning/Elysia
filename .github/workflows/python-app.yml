@@ -19,9 +19,13 @@ jobs:
       - name: Download yt-dlp + ffmpeg
         run: |
           curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
+          chmod +x yt-dlp
+
           curl -L https://evermeet.cx/ffmpeg/getrelease/zip -o ffmpeg.zip
           unzip ffmpeg.zip
-          chmod +x yt-dlp ffmpeg ffprobe
+
+          chmod +x ffmpeg
+          chmod +x ffprobe
 
       - name: Build
         run: |
