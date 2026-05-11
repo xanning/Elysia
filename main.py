@@ -179,7 +179,6 @@ def parse_formats(raw):
         a["track_idx"]   = grp.index(a) + 1
         a["track_total"] = len(grp)
 
-    
     codec_order = {"ec3": 0, "ac3": 1, "aac": 2, "mp4a": 2, "opus": 3, "flac": 4}
     audio.sort(key=lambda a: (
         0 if a["lang"] == "English" else 1,
@@ -284,101 +283,185 @@ def pick(n, label):
         print(red(f"    Enter a number from 1 to {n}"))
 
 
-def draw_progress(pct, speed, eta, frag, total_frag, phase):
-    tw    = min(term_width() - 2, 78)
-    bar_w = tw - 38
-    filled = int(bar_w * pct / 100)
-    bar   = green("█" * filled) + grey("░" * (bar_w - filled))
-
-    pct_s   = white(f"{pct:5.1f}%")
-    spd_s   = cyan(f"{speed:<12}") if speed else " " * 12
-    eta_s   = yellow(f"ETA {eta:<8}") if eta else " " * 12
-    frg_s   = grey(f"{frag}/{total_frag}") if frag and total_frag else ""
-    ph_s    = grey(f" [{phase}]")
-
-    sys.stdout.write(f"\r  {bar}  {pct_s}  {spd_s}  {eta_s}  {frg_s}{ph_s}   ")
-    sys.stdout.flush()
-
-
-def run_download(fmt, url, outname):
-    cmd = (
+def make_ytdlp_cmd(fmt_id, url, outfile):
+    return (
         [YT_DLP] + HEADERS
         + [
             "--ffmpeg-location", FFMPEG,
-            "-f", fmt,
-            "-o", f"{outname}.mp4",
+            "-f", fmt_id,
+            "-o", outfile,
             "--newline",
             "--no-warnings",
+            "--concurrent-fragments", "2",
+            "--http-chunk-size", "10M",
+            "--buffer-size", "16K",
+            "--no-part",
+            "--retries", "10",
+            "--fragment-retries", "10",
+            "--retry-sleep", "linear=1::2",
             "--progress-template",
             "%(progress.status)s %(progress._percent_str)s %(progress._speed_str)s %(progress._eta_str)s %(progress.fragment_index)s %(progress.fragment_count)s",
             url
         ]
     )
 
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        bufsize=1
+
+def draw_dual_progress(v_pct, v_spd, v_eta, a_pct, a_spd, a_eta, v_done, a_done):
+    bar_w = 24
+
+    def bar(pct, done):
+        filled = int(bar_w * pct / 100)
+        if done:
+            return green("█" * bar_w)
+        return green("█" * filled) + grey("░" * (bar_w - filled))
+
+    def row(label, pct, spd, eta, done):
+        if done:
+            right = green("done")
+        else:
+            right = cyan(f"{spd:<12}") + "  " + yellow(f"ETA {eta}" if eta else "")
+        return f"  {grey(label)}  {bar(pct, done)}  {white(f'{pct:5.1f}%')}  {right}"
+
+    sys.stdout.write("\033[2A\033[J")
+    print(row("video", v_pct, v_spd, v_eta, v_done))
+    print(row("audio", a_pct, a_spd, a_eta, a_done))
+    sys.stdout.flush()
+
+
+def parse_progress_line(line):
+    """Return (status, pct, speed, eta) from a yt-dlp --newline progress line."""
+    parts  = line.split()
+    status = parts[0].lower() if parts else ""
+    pct, speed, eta = 0.0, "", ""
+    if len(parts) > 1:
+        try: pct = float(parts[1].rstrip("%"))
+        except ValueError: pass
+    if len(parts) > 2: speed = parts[2]
+    if len(parts) > 3: eta   = parts[3]
+    return status, pct, speed, eta
+
+
+def run_download(v_id, a_id, url, outname):
+   
+    if a_id is None:
+        print()
+        print()
+        proc = subprocess.Popen(
+            make_ytdlp_cmd(v_id, url, f"{outname}.mp4"),
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, bufsize=1
+        )
+        for line in proc.stdout:
+            parts = line.strip().split()
+            if parts and parts[0].lower() == "downloading":
+                try:    pct = float(parts[1].rstrip("%"))
+                except: pct = 0.0
+                spd = parts[2] if len(parts) > 2 else ""
+                draw_dual_progress(pct, spd, 0, "", False, True)
+        proc.wait()
+        return proc.returncode
+
+    tmp_v = f"{outname}.video.tmp"
+    tmp_a = f"{outname}.audio.tmp"
+    out   = f"{outname}.mp4"
+
+   
+    proc_v = subprocess.Popen(
+        make_ytdlp_cmd(v_id, url, tmp_v),
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        text=True, bufsize=8192
+    )
+    proc_a = subprocess.Popen(
+        make_ytdlp_cmd(a_id, url, tmp_a),
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        text=True, bufsize=8192
     )
 
-    phase        = "video"
-    finished_ct  = 0
-    last_pct     = 0.0
+    state = {
+        "v": {"pct": 0.0, "spd": "", "eta": "", "done": False},
+        "a": {"pct": 0.0, "spd": "", "eta": "", "done": False},
+    }
+
+   
+    print()
+    print()
+
+    import threading, queue
+
+    q = queue.Queue()
+
+    def reader(proc, key):
+        for line in proc.stdout:
+            q.put((key, line.strip()))
+        proc.wait()
+        q.put((key, None))  
+
+    t_v = threading.Thread(target=reader, args=(proc_v, "v"), daemon=True)
+    t_a = threading.Thread(target=reader, args=(proc_a, "a"), daemon=True)
+    t_v.start()
+    t_a.start()
+
+    done_count = 0
 
     try:
-        for line in proc.stdout:
-            line = line.strip()
-            if not line:
-                continue
+        while done_count < 2:
+            key, line = q.get()
+            if line is None:
+                done_count += 1
+                state[key]["done"] = True
+                state[key]["pct"]  = 100.0
+                state[key]["eta"]  = ""
+            else:
+                status, pct, spd, eta = parse_progress_line(line)
+                if status == "downloading":
+                    state[key]["pct"] = pct
+                    state[key]["spd"] = spd
+                    state[key]["eta"] = eta
+                elif status == "finished":
+                    state[key]["done"] = True
+                    state[key]["pct"]  = 100.0
+                    state[key]["eta"]  = ""
 
-            parts  = line.split()
-            status = parts[0].lower() if parts else ""
-
-            if status == "downloading":
-                pct_raw = parts[1].rstrip("%") if len(parts) > 1 else "0"
-                speed   = parts[2]             if len(parts) > 2 else ""
-                eta     = parts[3]             if len(parts) > 3 else ""
-                frag    = parts[4]             if len(parts) > 4 else ""
-                tfrag   = parts[5]             if len(parts) > 5 else ""
-
-                try:
-                    pct = float(pct_raw)
-                except:
-                    pct = 0.0
-
-                last_pct = pct
-                draw_progress(pct, speed, eta, frag, tfrag, phase)
-
-            elif status == "finished":
-                finished_ct += 1
-
-                bar_w = min(term_width() - 2, 78) - 38
-
-                sys.stdout.write(
-                    f"\r  {green('█' * bar_w)}  "
-                    f"{white('100.0%')}  "
-                    f"{grey(phase + ' done'):<30}\n"
-                )
-
-                sys.stdout.flush()
-
-                if finished_ct == 1:
-                    phase = "audio"
-
-        proc.wait()
+            draw_dual_progress(
+                state["v"]["pct"], state["v"]["spd"], state["v"]["eta"],
+                state["a"]["pct"], state["a"]["spd"], state["a"]["eta"],
+                state["v"]["done"], state["a"]["done"],
+            )
 
     except KeyboardInterrupt:
-        proc.terminate()
-        proc.wait()
+        proc_v.terminate()
+        proc_a.terminate()
+        proc_v.wait()
+        proc_a.wait()
+        for f in (tmp_v, tmp_a):
+            try: os.remove(f)
+            except: pass
         print(red("\n\n  Download cancelled.\n"))
         sys.exit(0)
 
-    sys.stdout.write("\n")
+    if proc_v.returncode != 0 or proc_a.returncode != 0:
+        return max(proc_v.returncode or 0, proc_a.returncode or 0)
+
+   
+    print()
+    sys.stdout.write(grey("  · merging …"))
     sys.stdout.flush()
 
-    return proc.returncode
+    merge = subprocess.run(
+        [FFMPEG, "-y",
+         "-i", tmp_v, "-i", tmp_a,
+         "-c", "copy", out],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+
+    for f in (tmp_v, tmp_a):
+        try: os.remove(f)
+        except: pass
+
+    sys.stdout.write(f"\r{' ' * 20}\r")
+    sys.stdout.flush()
+
+    return merge.returncode
 
 
 def banner():
@@ -389,11 +472,9 @@ def banner():
     print("  " + grey("      ·  ·  ·"))
     print("  " + grey("   ·     ·     ·"))
     
-    
     print("  " + grey("·        ") + bold(white("E L Y S I A")) + grey("        ·"))
     print("  " + grey("   ·     ") + grey("media downloader") + grey("     ·"))
     
-   
     print("  " + grey("      ·  ·  ·"))
     print("  " + grey("         ·"))
     print()
@@ -434,7 +515,6 @@ def main():
     except KeyboardInterrupt:
         sys.exit(0)
 
-    
     W = 54
     def card_row(label, value):
         inner  = f"  {grey(label)}  {value}"
@@ -454,8 +534,11 @@ def main():
     print(grey("  · · ·  downloading  ·  ctrl+c to cancel"))
     print()
 
-    fmt  = f"{v['id']}+{a['id']}" if a else v["id"]
-    code = run_download(fmt, url, outname)
+    if a:
+        code = run_download(v["id"], a["id"], url, outname)
+    else:
+        
+        code = run_download(v["id"], None, url, outname)
 
     if code == 0:
         print(green(f"  ✓  {bold(outname+'.mp4')}") + white("  saved successfully"))
