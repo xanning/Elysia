@@ -15,6 +15,6 @@
 
 ## MACOS
 
-- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/25634051319/artifacts/6905262861
+- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/25672955843/artifacts/6919646861
 
 - Right click => Open => Open anyway
