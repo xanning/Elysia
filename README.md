@@ -5,7 +5,7 @@
 
 ## An HLS media downloader and converter with quality, language (and more) selection
 
-- Go to Releases page, and download the Windows executable. For macOS look below.
+- Download the source code and `python elysia.py`
 
 - The URL you need to input is the HLS playlist link.
 
