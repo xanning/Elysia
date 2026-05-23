@@ -1,0 +1,60 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: c
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Download yt-dlp
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
+            -OutFile "yt-dlp.exe"
+
+      - name: Download ffmpeg
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" `
+            -OutFile "ffmpeg.zip"
+
+          Expand-Archive ffmpeg.zip ffmpeg-temp
+
+          $ffmpeg = Get-ChildItem -Recurse ffmpeg-temp -Filter ffmpeg.exe | Select-Object -First 1
+          Copy-Item $ffmpeg.FullName ffmpeg.exe
+
+      - name: Build EXE
+        run: |
+          pyinstaller `
+            --noconfirm `
+            --clean `
+            --onefile `
+            --console `
+            --name Elysia `
+            --add-binary "yt-dlp.exe;." `
+            --add-binary "ffmpeg.exe;." `
+            main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ELYSIA-Windows
+          path: dist/ELYSIA.exe
