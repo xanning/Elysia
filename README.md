@@ -5,7 +5,7 @@
 
 ## An HLS media downloader and converter with quality, language (and more) selection
 
-- Download the source code and `python elysia.py`
+- Windows download link: https://github.com/xanning/Elysia/actions/runs/26334753434/artifacts/7177391894
 
 - The URL you need to input is the HLS playlist link.
 
@@ -15,6 +15,6 @@
 
 ## MACOS
 
-- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/25672955843/artifacts/6919646861
+- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/26334753423/artifacts/7177388821
 
 - Right click => Open => Open anyway
