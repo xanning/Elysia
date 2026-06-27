@@ -14,8 +14,8 @@ FFMPEG = resource_path(
     "ffmpeg.exe" if os.name == "nt" else "ffmpeg"
 )
 HEADERS = [
-    "--add-header", "Origin:https://pstream.net",
-    "--add-header", "Referer:https://pstream.net/",
+    "--add-header", "Origin:https://zstream.mov",
+    "--add-header", "Referer:https://zstream.mov/",
     "--add-header", "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0"
 ]
 
