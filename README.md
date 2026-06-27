@@ -5,7 +5,7 @@
 
 ## An HLS media downloader and converter with quality, language (and more) selection
 
-- Windows download link: https://github.com/xanning/Elysia/actions/runs/26334753434/artifacts/7177391894
+- Windows download link: https://github.com/xanning/Elysia/actions/runs/28284072084/artifacts/7922887291
 
 - The URL you need to input is the HLS playlist link.
 
@@ -15,6 +15,6 @@
 
 ## MACOS
 
-- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/26334753423/artifacts/7177388821
+- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/28284072091/artifacts/7922884996
 
 - Right click => Open => Open anyway
