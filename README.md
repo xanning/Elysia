@@ -5,8 +5,6 @@
 
 ## An HLS media downloader and converter with quality, language (and more) selection
 
-- Windows download link: https://github.com/xanning/Elysia/actions/runs/28284072084/artifacts/7922887291
-
 - The URL you need to input is the HLS playlist link.
 
 <img width="513" height="682" alt="image" src="https://github.com/user-attachments/assets/470e91e0-dfa7-40cb-ad22-2d581f252d0a" />
@@ -15,6 +13,6 @@
 
 ## MACOS
 
-- Download the macOS .dmg file https://github.com/xanning/Elysia/actions/runs/28284072091/artifacts/7922884996
+- Download the macOS .dmg file on releases
 
 - Right click => Open => Open anyway
