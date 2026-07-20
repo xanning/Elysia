@@ -342,7 +342,7 @@ def parse_progress_line(line):
 
 
 def run_download(v_id, a_id, url, outname):
-   
+    # ── video-only shortcut (no audio selected) ───────────────────────
     if a_id is None:
         print()
         print()
@@ -365,7 +365,7 @@ def run_download(v_id, a_id, url, outname):
     tmp_a = f"{outname}.audio.tmp"
     out   = f"{outname}.mp4"
 
-   
+    # ── launch both downloads simultaneously ─────────────────────────
     proc_v = subprocess.Popen(
         make_ytdlp_cmd(v_id, url, tmp_v),
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
@@ -382,7 +382,7 @@ def run_download(v_id, a_id, url, outname):
         "a": {"pct": 0.0, "spd": "", "eta": "", "done": False},
     }
 
-   
+    # reserve two blank lines for the dual progress display
     print()
     print()
 
@@ -394,7 +394,7 @@ def run_download(v_id, a_id, url, outname):
         for line in proc.stdout:
             q.put((key, line.strip()))
         proc.wait()
-        q.put((key, None))  
+        q.put((key, None))   # sentinel
 
     t_v = threading.Thread(target=reader, args=(proc_v, "v"), daemon=True)
     t_a = threading.Thread(target=reader, args=(proc_a, "a"), daemon=True)
@@ -442,7 +442,7 @@ def run_download(v_id, a_id, url, outname):
     if proc_v.returncode != 0 or proc_a.returncode != 0:
         return max(proc_v.returncode or 0, proc_a.returncode or 0)
 
-   
+    # ── merge with ffmpeg ─────────────────────────────────────────────
     print()
     sys.stdout.write(grey("  · merging …"))
     sys.stdout.flush()
@@ -537,7 +537,7 @@ def main():
     if a:
         code = run_download(v["id"], a["id"], url, outname)
     else:
-        
+        # video-only: single download, no merge needed
         code = run_download(v["id"], None, url, outname)
 
     if code == 0:
